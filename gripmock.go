@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/tokopedia/gripmock/stub"
+	"github.com/dominikeinkemmer/gripmock/stub"
 )
 
 func main() {
@@ -108,6 +108,8 @@ func generateProtoc(param protocParam) {
 		protodir = strings.Join(protodirs[:len(protodirs)-1], "/") + "/"
 	}
 
+	overwriteGoPackage(param.protoPath)
+
 	args := []string{"-I", protodir}
 	// include well-known-types
 	for _, i := range param.imports {
@@ -125,23 +127,39 @@ func generateProtoc(param protocParam) {
 		log.Fatal("Fail on protoc ", err)
 	}
 
-	// change package to "main" on generated code
+	// extract correct output dir for proto file if `option go_package` exists
+	// then change package to "main" on generated code
 	for _, proto := range param.protoPath {
 		protoname := getProtoName(proto)
-		sed := exec.Command("sed", "-i", `s/^package \w*$/package main/`, param.output+protoname+".pb.go")
+
+		sed := exec.Command("gsed", "-i", `s/^package \w*$/package main/`, param.output+"grpc/"+protoname+".pb.go")
 		sed.Stderr = os.Stderr
 		sed.Stdout = os.Stdout
 		err = sed.Run()
 		if err != nil {
+			fmt.Printf("%s\n", err)
 			log.Fatal("Fail on sed")
 		}
 	}
 }
 
+func overwriteGoPackage(protoPaths []string) {
+	for _, proto := range protoPaths {
+		// Overwrite go_package option of proto file
+		sed := exec.Command("sed", "-i", `s/^option\sgo_package.*";/option go_package = "grpc;main";/`, proto)
+		sed.Stderr = os.Stderr
+		sed.Stdout = os.Stdout
+		err := sed.Run()
+		if err != nil {
+			log.Fatalf("Fail on sed: %s\n", err)
+		}
+	}
+}
+
 func buildServer(output string, protoPaths []string) {
-	args := []string{"build", "-o", output + "grpcserver", output + "server.go"}
+	args := []string{"build", "-o", output + "grpc/" + "grpcserver", output + "grpc/" + "server.go"}
 	for _, path := range protoPaths {
-		args = append(args, output+getProtoName(path)+".pb.go")
+		args = append(args, output+"grpc/"+getProtoName(path)+".pb.go")
 	}
 	build := exec.Command("go", args...)
 	build.Stdout = os.Stdout
@@ -153,7 +171,7 @@ func buildServer(output string, protoPaths []string) {
 }
 
 func runGrpcServer(output string) (*exec.Cmd, <-chan error) {
-	run := exec.Command(output + "grpcserver")
+	run := exec.Command(output + "grpc/" + "grpcserver")
 	run.Stdout = os.Stdout
 	run.Stderr = os.Stderr
 	err := run.Start()
