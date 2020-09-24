@@ -43,7 +43,7 @@ func main() {
 	}
 	gen.Response.File = []*plugin_go.CodeGeneratorResponse_File{
 		{
-			Name:    proto.String("server.go"),
+			Name:    proto.String("grpc/server.go"),
 			Content: proto.String(buf.String()),
 		},
 	}

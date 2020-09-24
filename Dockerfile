@@ -12,7 +12,8 @@ RUN go get -u -v github.com/golang/protobuf/protoc-gen-go \
 	golang.org/x/net/context \
 	github.com/go-chi/chi \
 	github.com/lithammer/fuzzysearch/fuzzy \
-	golang.org/x/tools/imports
+	golang.org/x/tools/imports \
+	github.com/golang/mock/gomock
 
 RUN go get -u -v github.com/gobuffalo/packr/v2/... \
 	github.com/gobuffalo/packr/v2/packr2
@@ -27,11 +28,11 @@ RUN mv /protobuf-repo/src/ /protobuf/
 
 RUN rm -rf /protobuf-repo
 
-RUN mkdir -p /go/src/github.com/tokopedia/gripmock
+RUN mkdir -p /go/src/github.com/dominikeinkemmer/gripmock
 
-COPY . /go/src/github.com/tokopedia/gripmock
+COPY . /go/src/github.com/dominikeinkemmer/gripmock
 
-WORKDIR /go/src/github.com/tokopedia/gripmock/protoc-gen-gripmock
+WORKDIR /go/src/github.com/dominikeinkemmer/gripmock/protoc-gen-gripmock
 
 RUN packr2
 
@@ -40,7 +41,7 @@ RUN go install -v
 
 RUN packr2 clean
 
-WORKDIR /go/src/github.com/tokopedia/gripmock
+WORKDIR /go/src/github.com/dominikeinkemmer/gripmock
 
 # install gripmock
 RUN go install -v
